@@ -2,10 +2,12 @@ package com.github.cidarosa.ms.produto.service;
 
 import com.github.cidarosa.ms.produto.dto.CategoriaDto;
 import com.github.cidarosa.ms.produto.entities.Categoria;
+import com.github.cidarosa.ms.produto.exceptions.DatabaseException;
 import com.github.cidarosa.ms.produto.exceptions.ResourceNotFoundException;
 import com.github.cidarosa.ms.produto.repositories.CategoriaRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,15 +20,15 @@ public class CategoriaService {
     private CategoriaRepository categoriaRepository;
 
     @Transactional(readOnly = true)
-    public List<CategoriaDto> findAllCategorias(){
+    public List<CategoriaDto> findAllCategorias() {
 
-       return categoriaRepository.findAll()
-               .stream().map(CategoriaDto::new).toList();
+        return categoriaRepository.findAll()
+                .stream().map(CategoriaDto::new).toList();
 
     }
 
     @Transactional(readOnly = true)
-    public CategoriaDto findCategoriaById(Long id){
+    public CategoriaDto findCategoriaById(Long id) {
 
         Categoria categoria = categoriaRepository.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException("Recurso não encontrado. ID: " + id)
@@ -36,7 +38,7 @@ public class CategoriaService {
     }
 
     @Transactional
-    public CategoriaDto saveCategoria(CategoriaDto inputDto){
+    public CategoriaDto saveCategoria(CategoriaDto inputDto) {
 
         Categoria categoria = new Categoria();
         copyDtoToCategoria(inputDto, categoria);
@@ -45,7 +47,7 @@ public class CategoriaService {
     }
 
     @Transactional
-    public CategoriaDto updateCategoria(Long id, CategoriaDto inputDto){
+    public CategoriaDto updateCategoria(Long id, CategoriaDto inputDto) {
 
         try {
             Categoria categoria = categoriaRepository.getReferenceById(id);
@@ -57,13 +59,18 @@ public class CategoriaService {
         }
     }
 
-    public void deleteCategoriaById(Long id){
+    public void deleteCategoriaById(Long id) {
 
-        if(!categoriaRepository.existsById(id)){
+        if (!categoriaRepository.existsById(id)) {
             throw new ResourceNotFoundException("Recurso não encontrado. ID: " + id);
         }
 
-      categoriaRepository.deleteById(id);
+        try {
+            categoriaRepository.deleteById(id);
+        } catch (
+                DataIntegrityViolationException e) {
+            throw new DatabaseException("Não foi excluir Categoria. Existem podutos associados a ela");
+        }
     }
 
     private void copyDtoToCategoria(CategoriaDto inputDto, Categoria categoria) {

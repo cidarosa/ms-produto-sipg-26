@@ -1,12 +1,17 @@
 package com.github.cidarosa.ms.produto.service;
 
 import com.github.cidarosa.ms.produto.dto.ProdutoDTO;
+import com.github.cidarosa.ms.produto.entities.Categoria;
 import com.github.cidarosa.ms.produto.entities.Produto;
+import com.github.cidarosa.ms.produto.exceptions.DatabaseException;
 import com.github.cidarosa.ms.produto.exceptions.ResourceNotFoundException;
+import com.github.cidarosa.ms.produto.repositories.CategoriaRepository;
 import com.github.cidarosa.ms.produto.repositories.ProdutoRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -17,8 +22,11 @@ public class ProdutoService {
     @Autowired
     private ProdutoRepository produtoRepository;
 
+    @Autowired
+    private CategoriaRepository categoriaRepository;
+
     @Transactional(readOnly = true)
-    public List<ProdutoDTO> findAllProdutos(){
+    public List<ProdutoDTO> findAllProdutos() {
 
         List<Produto> produtos = produtoRepository.findAll();
 
@@ -26,7 +34,7 @@ public class ProdutoService {
     }
 
     @Transactional(readOnly = true)
-    public ProdutoDTO findProdutoById(Long id){
+    public ProdutoDTO findProdutoById(Long id) {
 
         Produto produto = produtoRepository.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException("Recurso não encontrado. ID: " + id)
@@ -36,16 +44,20 @@ public class ProdutoService {
     }
 
     @Transactional
-    public ProdutoDTO saveProduto(ProdutoDTO produtoDTO){
+    public ProdutoDTO saveProduto(ProdutoDTO produtoDTO) {
 
-        Produto produto = new Produto();
-        copyDtoToProduto(produtoDTO, produto);
-        produto = produtoRepository.save(produto);
-        return new ProdutoDTO(produto);
+        try {
+            Produto produto = new Produto();
+            copyDtoToProduto(produtoDTO, produto);
+            produto = produtoRepository.save(produto);
+            return new ProdutoDTO(produto);
+        } catch (DataIntegrityViolationException e) {
+            throw new DatabaseException("Não foi possível salvar produto. Categoria inexistente (ID: " + produtoDTO.getCategoria().getId() + ")");
+        }
     }
 
     @Transactional
-    public ProdutoDTO updatePruduto(Long id, ProdutoDTO produtoDTO){
+    public ProdutoDTO updatePruduto(Long id, ProdutoDTO produtoDTO) {
 
         try {
             Produto produto = produtoRepository.getReferenceById(id);
@@ -54,18 +66,21 @@ public class ProdutoService {
             return new ProdutoDTO(produto);
         } catch (EntityNotFoundException e) {
             throw new ResourceNotFoundException("Recurso não encontrado. ID: " + id);
-
+        } catch (DataIntegrityViolationException e) {
+            throw new DatabaseException("Não foi possível salvar produto. Categoria inexistente (ID: " + produtoDTO.getCategoria().getId() + ")");
         }
     }
 
-    @Transactional
-    public void deleteProdutoById(Long id){
+    @Transactional(propagation = Propagation.SUPPORTS)
+    public void deleteProdutoById(Long id) {
 
-        if(! produtoRepository.existsById(id)){
+        if (!produtoRepository.existsById(id)) {
 
             throw new ResourceNotFoundException("Recurso não encontrado. ID: " + id);
         }
+
         produtoRepository.deleteById(id);
+
     }
 
     private void copyDtoToProduto(ProdutoDTO produtoDTO, Produto produto) {
@@ -73,5 +88,9 @@ public class ProdutoService {
         produto.setNome(produtoDTO.getNome());
         produto.setDescricao(produtoDTO.getDescricao());
         produto.setValor(produtoDTO.getValor());
+
+        Categoria categoria = categoriaRepository.getReferenceById(produtoDTO.getCategoria().getId());
+
+        produto.setCategoria(categoria);
     }
 }
