@@ -76,14 +76,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(err);
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<CustomErrorDTO> handeGenericException(Exception e,
-                                                                HttpServletRequest request){
-        HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
-        CustomErrorDTO err = new CustomErrorDTO(Instant.now(), status.value(),
-                "Erro interno inesperado", request.getRequestURI());
-
-        return ResponseEntity.status(status).body(err);
-    }
+//    @ExceptionHandler(Exception.class)
+//    public ResponseEntity<CustomErrorDTO> handleGenericException(Exception e,
+//                                                                HttpServletRequest request){
+//        HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
+//        CustomErrorDTO err = new CustomErrorDTO(Instant.now(), status.value(),
+//                "Erro interno inesperado", request.getRequestURI());
+//
+//        return ResponseEntity.status(status).body(err);
+//    }
 
 }

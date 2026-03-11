@@ -9,6 +9,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -59,6 +60,7 @@ public class CategoriaService {
         }
     }
 
+    @Transactional(propagation = Propagation.SUPPORTS)
     public void deleteCategoriaById(Long id) {
 
         if (!categoriaRepository.existsById(id)) {
@@ -69,7 +71,7 @@ public class CategoriaService {
             categoriaRepository.deleteById(id);
         } catch (
                 DataIntegrityViolationException e) {
-            throw new DatabaseException("Não foi excluir Categoria. Existem podutos associados a ela");
+            throw new DatabaseException("Não foi possível excluir Categoria. Existem podutos associados a ela");
         }
     }
 
